@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Adivinhação</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #f72585;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .difficulty-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .difficulty-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            background: #e9ecef;
+            color: var(--dark);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .difficulty-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .game-area {
+            margin-top: 20px;
+        }
+
+        .guess-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .guess-input input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .guess-input button {
+            padding: 15px 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .feedback {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .guess-history {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        #history-list {
+            list-style: none;
+        }
+
+        @media (max-width: 600px) {
+            .difficulty-options {
+                flex-direction: column;
+            }
+            .guess-input {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1><i class="fas fa-gamepad"></i> Jogo de Adivinhação</h1>
+            <p>Tente adivinhar o número secreto!</p>
+        </div>
+
+        <div class="difficulty-options">
+            <button class="difficulty-btn active" data-level="easy">
+                <i class="fas fa-smile"></i> Fácil (1-50)
+            </button>
+            <button class="difficulty-btn" data-level="medium">
+                <i class="fas fa-meh"></i> Médio (1-100)
+            </button>
+            <button class="difficulty-btn" data-level="hard">
+                <i class="fas fa-frown"></i> Difícil (1-200)
+            </button>
+        </div>
+
+        <div class="game-area">
+            <div class="guess-input">
+                <input type="number" id="guess-input" placeholder="Digite seu palpite...">
+                <button id="submit-guess"><i class="fas fa-paper-plane"></i> Enviar</button>
+            </div>
+
+            <div class="feedback" id="feedback">
+                Escolha uma dificuldade e comece a jogar!
+            </div>
+
+            <div class="guess-history">
+                <h3>Histórico de Palpites:</h3>
+                <ul id="history-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis do jogo
+        let secretNumber;
+        let attempts;
+        let maxAttempts;
+        let difficulty = 'medium';
+        let gameActive = false;
+
+        // Elementos do DOM
+        const guessInput = document.getElementById('guess-input');
+        const submitBtn = document.getElementById('submit-guess');
+        const feedback = document.getElementById('feedback');
+        const historyList = document.getElementById('history-list');
+        const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+
+        // Configurações de dificuldade
+        const difficultySettings = {
+            easy: { range: 50, attempts: 10 },
+            medium: { range: 100, attempts: 8 },
+            hard: { range: 200, attempts: 5 }
+        };
+
+        // Iniciar novo jogo
+        function startNewGame() {
+            const settings = difficultySettings[difficulty];
+            secretNumber = Math.floor(Math.random() * settings.range) + 1;
+            maxAttempts = settings.attempts;
+            attempts = 0;
+            gameActive = true;
+            historyList.innerHTML = '';
+            
+            feedback.textContent = `Estou pensando em um número entre 1 e ${settings.range}. Boa sorte!`;
+            feedback.style.color = 'var(--primary)';
+            guessInput.value = '';
+            guessInput.focus();
+        }
+
+        // Processar palpite
+        function processGuess() {
+            if (!gameActive) return;
+
+            const guess = parseInt(guessInput.value);
+            
+            // Validação
+            if (isNaN(guess)) {
+                feedback.textContent = 'Por favor, digite um número válido!';
+                feedback.style.color = 'var(--danger)';
+                return;
+            }
+
+            const settings = difficultySettings[difficulty];
+            if (guess < 1 || guess > settings.range) {
+                feedback.textContent = `O número deve estar entre 1 e ${settings.range}!`;
+                feedback.style.color = 'var(--danger)';
+                return;
+            }
+
+            attempts++;
+            
+            // Adicionar ao histórico
+            const listItem = document.createElement('li');
+            listItem.textContent = `Tentativa ${attempts}: ${guess}`;
+            
+            // Verificar palpite
+            if (guess === secretNumber) {
+                listItem.innerHTML += ' <i class="fas fa-check" style="color: var(--success);"></i>';
+                feedback.innerHTML = `<span style="color: var(--success)"><i class="fas fa-trophy"></i> Parabéns! Você acertou em ${attempts} tentativa(s)!</span>`;
+                gameActive = false;
+            } else if (guess < secretNumber) {
+                listItem.innerHTML += ' <i class="fas fa-arrow-down" style="color: var(--warning);"></i>';
+                feedback.innerHTML = '<span style="color: var(--warning)"><i class="fas fa-arrow-down"></i> Muito baixo! Tente um número maior.</span>';
+            } else {
+                listItem.innerHTML += ' <i class="fas fa-arrow-up" style="color: var(--danger);"></i>';
+                feedback.innerHTML = '<span style="color: var(--danger)"><i class="fas fa-arrow-up"></i> Muito alto! Tente um número menor.</span>';
+            }
+
+            historyList.prepend(listItem);
+
+            // Verificar fim do jogo
+            if (attempts >= maxAttempts && guess !== secretNumber) {
+                feedback.innerHTML = `<span style="color: var(--danger)"><i class="fas fa-sad-tear"></i> Fim de jogo! O número era ${secretNumber}.</span>`;
+                gameActive = false;
+            }
+
+            guessInput.value = '';
+        }
+
+        // Event Listeners
+        difficultyBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                difficultyBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                difficulty = btn.dataset.level;
+                startNewGame();
+            });
+        });
+
+        submitBtn.addEventListener('click', processGuess);
+        guessInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') processGuess();
+        });
+
+        // Iniciar primeiro jogo
+        startNewGame();
+    </script>
+</body>
+</html>
